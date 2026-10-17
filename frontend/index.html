@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Project Sovereign - Fully offline, premium agentic dashboard. Control browser and system tools via local LLMs.">
+    <title>Sovereign Agent Dashboard</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #07050f;
+            --bg-surface: rgba(18, 14, 38, 0.7);
+            --bg-card: rgba(30, 24, 60, 0.45);
+            --border-glass: rgba(111, 76, 255, 0.2);
+            --border-active: rgba(111, 76, 255, 0.6);
+            --color-primary: #8a63ff;
+            --color-primary-glow: rgba(138, 99, 255, 0.4);
+            --color-secondary: #00f0ff;
+            --color-success: #00ff87;
+            --color-error: #ff4a80;
+            --text-main: #f0ecff;
+            --text-muted: #9c97b8;
+            --font-outfit: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-outfit);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(138, 99, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.07) 0%, transparent 40%);
+        }
+
+        /* --- Header --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(7, 5, 15, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 2.2rem;
+            height: 2.2rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: 8px;
+            box-shadow: 0 0 15px var(--color-primary-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transform: rotate(45deg);
+            animation: shine 4s infinite linear;
+        }
+
+        @keyframes shine {
+            0% { transform: translate(-30%, -30%) rotate(45deg); }
+            100% { transform: translate(30%, 30%) rotate(45deg); }
+        }
+
+        .logo-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-glass);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--color-error);
+            box-shadow: 0 0 8px var(--color-error);
+        }
+
+        .status-dot.active {
+            background-color: var(--color-success);
+            box-shadow: 0 0 8px var(--color-success);
+        }
+
+        /* --- Dashboard Grid Layout --- */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            flex-grow: 1;
+            height: calc(100vh - 65px);
+            overflow: hidden;
+        }
+
+        /* --- Left Sidebar (Control & Input) --- */
+        .sidebar {
+            border-right: 1px solid var(--border-glass);
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .control-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: var(--color-secondary);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"], select, textarea {
+            background: rgba(7, 5, 15, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-main);
+            font-family: var(--font-outfit);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        input[type="text"]:focus, select:focus, textarea:focus {
+            border-color: var(--border-active);
+            box-shadow: 0 0 10px rgba(138, 99, 255, 0.15);
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 0.75rem;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--color-primary), #6f4cff);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(111, 76, 255, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(111, 76, 255, 0.4);
+        }
+
+        button.btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            box-shadow: none;
+        }
+
+        button.btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button.btn-stop {
+            background: linear-gradient(135deg, var(--color-error), #d02050);
+            box-shadow: 0 4px 15px rgba(255, 74, 128, 0.2);
+        }
+
+        button.btn-stop:hover {
+            box-shadow: 0 6px 20px rgba(255, 74, 128, 0.4);
+        }
+
+        /* Checklist Styles */
+        .checklist-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--text-muted);
+            transition: var(--transition-smooth);
+        }
+
+        .checklist-item.current {
+            border-left-color: var(--color-primary);
+            background: rgba(138, 99, 255, 0.05);
+        }
+
+        .checklist-item.completed {
+            border-left-color: var(--color-success);
+            opacity: 0.6;
+        }
+
+        .checklist-checkbox {
+            margin-top: 0.2rem;
+            width: 14px;
+            height: 14px;
+            accent-color: var(--color-success);
+        }
+
+        /* --- Right Content Area --- */
+        main {
+            display: grid;
+            grid-template-rows: 1fr 220px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Upper section split: Chat Logs and Browser/Memory tabs */
+        .upper-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            background: rgba(7, 5, 15, 0.4);
+            border-right: 1px solid var(--border-glass);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(18, 14, 38, 0.4);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .message {
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .message.system {
+            align-self: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .message.agent {
+            align-self: flex-start;
+        }
+
+        .message-bubble {
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            background: rgba(30, 24, 60, 0.3);
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .message.agent .message-bubble {
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .message-thought {
+            font-family: var(--font-outfit);
+            background: rgba(138, 99, 255, 0.05);
+            border: 1px solid rgba(138, 99, 255, 0.15);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #d1c7ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-action {
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            padding: 0.5rem;
+            border-radius: 6px;
+            color: var(--color-secondary);
+        }
+
+        .message-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        /* Tabs & Display Panel */
+        .display-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: rgba(7, 5, 15, 0.6);
+        }
+
+        .tab-bar {
+            display: flex;
+            background: rgba(18, 14, 38, 0.6);
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: var(--font-outfit);
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition-smooth);
+            box-shadow: none;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab-btn.active {
+            color: var(--color-secondary);
+            border-bottom-color: var(--color-secondary);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-content {
+            flex-grow: 1;
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Browser Frame Content */
+        .browser-viewer {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #100e1c;
+        }
+
+        .browser-url-bar {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border-glass);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .browser-image-wrapper {
+            flex-grow: 1;
+            position: relative;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .browser-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Memory Search content */
+        .memory-search-container {
+            padding: 1.5rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .memory-results {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .memory-doc {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .memory-doc-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .score-pill {
+            background: rgba(0,255,135,0.1);
+            color: var(--color-success);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* --- Bottom Console --- */
+        .console-panel {
+            background: #04030a;
+            border-top: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .console-header {
+            padding: 0.5rem 1.5rem;
+            background: rgba(18,14,38,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .console-logs {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #b8b3db;
+            background: #04030a;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+        }
+
+        .log-entry.info { color: #8a63ff; }
+        .log-entry.success { color: var(--color-success); }
+        .log-entry.error { color: var(--color-error); }
+        .log-entry.system { color: var(--color-secondary); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(138, 99, 255, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(138, 99, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <div class="logo-icon"></div>
+            <div class="logo-title">
+                <h1>SOVEREIGN</h1>
+            </div>
+        </div>
+        <div class="system-status">
+            <div class="status-pill">
+                <span class="status-dot" id="ollama-dot"></span>
+                <span>Ollama Engine</span>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot" id="ws-dot"></span>
+                <span>System Sync</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <!-- Execution Control -->
+            <div class="control-card">
+                <h2 class="card-title">Agent Controller</h2>
+                
+                <div class="input-group">
+                    <label for="task-input">Define Task Prompt</label>
+                    <textarea id="task-input" rows="4" placeholder="Enter task instructions (e.g. Navigte to google.com and look up current space exploration news...)"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="model-select">Local Model Selector</label>
+                    <select id="model-select">
+                        <option value="qwen2.5-coder:1.5b">Qwen-2.5-Coder (1.5B)</option>
+                        <option value="qwen2.5-coder:3b">Qwen-2.5-Coder (3B - local pull)</option>
+                        <option value="deepseek-r1:1.5b">DeepSeek-R1-Reasoning (1.5B)</option>
+                        <option value="granite3.2-vision:2b">Granite-3.2-Vision (2B)</option>
+                    </select>
+                </div>
+
+                <div class="button-row">
+                    <button id="btn-run">Launch Agent</button>
+                    <button id="btn-stop" class="btn-stop">Abort</button>
+                </div>
+            </div>
+
+            <!-- Task Checklist progression -->
+            <div class="control-card" id="checklist-card" style="display: none;">
+                <h2 class="card-title">Scaffold Plan</h2>
+                <div class="checklist-container" id="checklist-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main workspace grid -->
+        <main>
+            <div class="upper-grid">
+                <!-- Chat log -->
+                <div class="chat-panel">
+                    <div class="panel-header">
+                        <h2 class="card-title">Cognitive Thread</h2>
+                        <span class="status-pill" id="agent-state-label" style="font-size: 0.8rem;">State: IDLE</span>
+                    </div>
+                    <div class="chat-messages" id="chat-stream">
+                        <div class="message system">
+                            <div class="message-bubble">Waiting for task initialization... Dashboard fully connected.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Web browser live view & memory search tabs -->
+                <div class="display-panel">
+                    <div class="tab-bar">
+                        <button class="tab-btn active" onclick="switchTab('browser-tab')">Automation Stream</button>
+                        <button class="tab-btn" onclick="switchTab('memory-tab')">Semantic Memory</button>
+                    </div>
+
+                    <!-- Browser screenshot tab -->
+                    <div class="tab-content active" id="browser-tab">
+                        <div class="browser-viewer">
+                            <div class="browser-url-bar" id="browser-url">URL: http://localhost</div>
+                            <div class="browser-image-wrapper">
+                                <img src="/screenshot" alt="Chromium Screenshot Stream" class="browser-image" id="live-screenshot">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Semantic Memory RAG search -->
+                    <div class="tab-content" id="memory-tab">
+                        <div class="memory-search-container">
+                            <div class="input-group" style="flex-direction: row; gap: 0.5rem;">
+                                <input type="text" id="memory-search-query" placeholder="Query agent's semantic memory..." style="flex-grow: 1;">
+                                <button onclick="searchMemory()" style="padding: 0.5rem 1.25rem;">Search</button>
+                            </div>
+                            <div class="memory-results" id="memory-results-list">
+                                <div style="text-align: center; color: var(--text-muted); margin-top: 2rem;">Search query results will be populated here.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal logs panel -->
+            <div class="console-panel">
+                <div class="console-header">
+                    <span>Tool Execution logs (Stdout / Stderr)</span>
+                    <button onclick="clearConsole()" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; box-shadow: none;">Clear</button>
+                </div>
+                <div class="console-logs" id="console-logs-list">
+                    <div class="log-entry system">[SYSTEM]: Sovereign core backend initialized. Ready for connections.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- UI Logic Script -->
+    <script>
+        let ws;
+        const chatStream = document.getElementById("chat-stream");
+        const consoleLogsList = document.getElementById("console-logs-list");
+        const checklistCard = document.getElementById("checklist-card");
+        const checklistList = document.getElementById("checklist-list");
+        const liveScreenshot = document.getElementById("live-screenshot");
+        const browserUrl = document.getElementById("browser-url");
+        const agentStateLabel = document.getElementById("agent-state-label");
+
+        // Establish WebSocket connection
+        function connectWS() {
+            const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const host = window.location.host;
+            ws = new WebSocket(`${proto}//${host}/ws`);
+
+            ws.onopen = () => {
+                document.getElementById("ws-dot").classList.add("active");
+                logConsole("WebSocket Sync Connected", "success");
+                checkHealth();
+            };
+
+            ws.onclose = () => {
+                document.getElementById("ws-dot").classList.remove("active");
+                logConsole("WebSocket Disconnected. Reconnecting...", "error");
+                setTimeout(connectWS, 3000);
+            };
+
+            ws.onerror = (err) => {
+                logger.error("WS error:", err);
+            };
+
+            ws.onmessage = (event) => {
+                const packet = JSON.parse(event.data);
+                handleWSPacket(packet);
+            };
+        }
+
+        function handleWSPacket(packet) {
+            console.log("Packet received:", packet);
+            if (packet.type === "status") {
+                updateAgentStatus(packet.data);
+            } else if (packet.type === "state_change") {
+                agentStateLabel.textContent = `State: ${packet.data.state.toUpperCase()}`;
+            } else if (packet.type === "step") {
+                renderStep(packet.data);
+            } else if (packet.type === "error") {
+                logConsole(`Error: ${packet.data.error}`, "error");
+            }
+        }
+
+        function updateAgentStatus(status) {
+            if (!status) return;
+            agentStateLabel.textContent = `State: ${status.state.toUpperCase()}`;
+            
+            // Render checklist
+            if (status.checklist && status.checklist.length > 0) {
+                checklistCard.style.display = "flex";
+                checklistList.innerHTML = "";
+                status.checklist.forEach((item, index) => {
+                    const stepDesc = typeof item === 'object' ? item.step : item;
+                    const isCompleted = index < status.current_step_index;
+                    const isCurrent = index === status.current_step_index;
+                    
+                    const div = document.createElement("div");
+                    div.className = `checklist-item ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`;
+                    div.innerHTML = `
+                        <input type="checkbox" class="checklist-checkbox" ${isCompleted ? 'checked' : ''} disabled>
+                        <span>${stepDesc}</span>
+                    `;
+                    checklistList.appendChild(div);
+                });
+            } else {
+                checklistCard.style.display = "none";
+            }
+        }
+
+        function renderStep(step) {
+            // Append thought to messaging interface
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message agent";
+            
+            let thoughtHtml = "";
+            if (step.thought) {
+                thoughtHtml = `<div class="message-thought">🧠 <strong>Thought:</strong> ${step.thought}</div>`;
+            }
+            
+            let actionHtml = "";
+            if (step.action && step.action !== "task_complete" && step.action !== "no_action_parsed") {
+                actionHtml = `<div class="message-action">⚙️ <strong>Running tool:</strong> ${step.action}(${JSON.stringify(step.args)})</div>`;
+            }
+
+            let observationHtml = "";
+            if (step.observation) {
+                const isErr = step.observation.includes("Error");
+                observationHtml = `<div class="message-bubble" style="${isErr ? 'border-left-color: var(--color-error)' : 'border-left-color: var(--color-success)'}">
+                    <strong>Result:</strong><br>
+                    <span style="font-size: 0.9rem; font-family: var(--font-mono); white-space: pre-wrap;">${step.observation.substring(0, 800)}</span>
+                </div>`;
+            }
+
+            msgDiv.innerHTML = `
+                ${thoughtHtml}
+                ${actionHtml}
+                ${observationHtml}
+                <div class="message-meta">Step ${step.step} • ${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            chatStream.appendChild(msgDiv);
+            chatStream.scrollTop = chatStream.scrollHeight;
+
+            // Trigger log updates
+            if (step.action) {
+                logConsole(`Step ${step.step} executing action: ${step.action}`, "info");
+            }
+            
+            // Reload screenshot dynamically if browser tool run
+            if (step.action && step.action.startsWith("browser_")) {
+                setTimeout(refreshScreenshot, 500);
+            }
+        }
+
+        function refreshScreenshot() {
+            liveScreenshot.src = `/screenshot?t=${new Date().getTime()}`;
+            logConsole("Refreshed chromium workspace view frame", "system");
+        }
+
+        // Action controls
+        document.getElementById("btn-run").onclick = async () => {
+            const task = document.getElementById("task-input").value;
+            const model = document.getElementById("model-select").value;
+            if (!task.trim()) {
+                alert("Please define a task prompt.");
+                return;
+            }
+
+            // Clear chats
+            chatStream.innerHTML = `<div class="message system"><div class="message-bubble">Initializing local agent scaffolding... Running...</div></div>`;
+            
+            try {
+                const response = await fetch("/run", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ task, model })
+                });
+                const res = await response.json();
+                if (response.ok) {
+                    logConsole(`Launched agent run: ${res.session_id}`, "success");
+                } else {
+                    logConsole(`Failed to start: ${res.detail}`, "error");
+                }
+            } catch (err) {
+                logConsole(`Error launching: ${err}`, "error");
+            }
+        };
+
+        document.getElementById("btn-stop").onclick = async () => {
+            try {
+                const response = await fetch("/stop", { method: "POST" });
+                const res = await response.json();
+                logConsole("Aborted agent execution loop.", "error");
+            } catch (err) {
+                logConsole(`Error aborting: ${err}`, "error");
+            }
+        };
+
+        // Utility: log console
+        function logConsole(text, type = "info") {
+            const entry = document.createElement("div");
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}]: ${text}`;
+            consoleLogsList.appendChild(entry);
+            consoleLogsList.scrollTop = consoleLogsList.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleLogsList.innerHTML = "";
+        }
+
+        // Tab switches
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+            
+            event.target.classList.add("active");
+            document.getElementById(tabId).classList.add("active");
+        }
+
+        // Check health
+        async function checkHealth() {
+            try {
+                const response = await fetch("/status");
+                const data = await response.json();
+                
+                const ollamaDot = document.getElementById("ollama-dot");
+                if (data.ollama_connected) {
+                    ollamaDot.classList.add("active");
+                } else {
+                    ollamaDot.classList.remove("active");
+                }
+            } catch (err) {
+                console.error("Health check failed:", err);
+            }
+        }
+
+        // Search Memory (RAG)
+        async function searchMemory() {
+            const query = document.getElementById("memory-search-query").value;
+            if (!query) return;
+            
+            const resultsList = document.getElementById("memory-results-list");
+            resultsList.innerHTML = `<div>Searching offline vectors...</div>`;
+            
+            try {
+                const response = await fetch(`/search_memory?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error("Search request failed");
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    resultsList.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 2rem;">No semantic matches found.</div>`;
+                    return;
+                }
+                
+                resultsList.innerHTML = "";
+                data.forEach(item => {
+                    const doc = item.document;
+                    const score = item.score.toFixed(4);
+                    
+                    const div = document.createElement("div");
+                    div.className = "memory-doc";
+                    div.innerHTML = `
+                        <div class="memory-doc-header">
+                            <span>Source: ${doc.source} (${doc.timestamp})</span>
+                            <span class="score-pill">Match: ${score}</span>
+                        </div>
+                        <div style="font-family: var(--font-outfit); font-size: 0.88rem; white-space: pre-wrap; margin-top: 0.4rem;">${doc.text}</div>
+                    `;
+                    resultsList.appendChild(div);
+                });
+            } catch (err) {
+                resultsList.innerHTML = `<div style="color: var(--color-error)">Error: ${err.message}</div>`;
+            }
+        }
+
+        // Run on startup
+        connectWS();
+        setInterval(checkHealth, 10000);
+    </script>
+</body>
+</html>
